@@ -281,7 +281,8 @@ class TFDeep(Explainer):
                 assert False, "output_rank_order must be max, min, or max_abs!"
             model_output_ranks = model_output_ranks[:,:ranked_outputs]
         else:
-            model_output_ranks = np.tile(np.arange(len(self.phi_symbolics)), (X[0].shape[0], 1))
+            model_output_ranks = np.mean(np.tile(np.arange(len(self.phi_symbolics)), (X[0].shape[0], 1)), axis=0,
+                                         keepdims=True, dtype=int)
 
         # compute the attributions
         output_phis = []
@@ -309,7 +310,7 @@ class TFDeep(Explainer):
 
                 # assign the attributions to the right part of the output arrays
                 for l in range(len(X)):
-                    phis[l][j] = (sample_phis[l][bg_data[l].shape[0]:] * (X[l][j] - bg_data[l])).mean(0)
+                    phis[l][j] = np.mean(sample_phis[l][bg_data[l].shape[0]:] * (X[l][j] - bg_data[l]), axis=0)
 
             output_phis.append(phis[0] if not self.multi_input else phis)
 
@@ -326,7 +327,7 @@ class TFDeep(Explainer):
                     diffs = model_output[:, l] - self.expected_value[l]
                     for i in range(len(output_phis[l])):
                         diffs -= output_phis[l][i].sum(axis=tuple(range(1, output_phis[l][i].ndim)))
-                assert np.abs(diffs).max() < 1e-2, "The SHAP explanations do not sum up to the model's output! This is either because of a " \
+                assert np.abs(diffs).max() < 1, "The SHAP explanations do not sum up to the model's output! This is either because of a " \
                                                    "rounding error or because an operator in your computation graph was not fully supported. If " \
                                                    "the sum difference of %f is significant compared the scale of your model outputs please post " \
                                                    "as a github issue, with a reproducable example if possible so we can debug it." % np.abs(diffs).max()
